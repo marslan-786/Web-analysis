@@ -5,40 +5,57 @@ const urlInput = document.getElementById("url");
 const iframe = document.getElementById("browserFrame");
 const logPanel = document.getElementById("logPanel");
 
-let ws = new WebSocket(location.origin.replace(/^http/, "ws"));
+const wsProto = location.protocol === "https:" ? "wss" : "ws";
+const ws = new WebSocket(wsProto + "://" + location.host);
 
-ws.onmessage = (e) => {
-  const msg = JSON.parse(e.data);
-  if (msg.type === "log") {
-    const log = msg.payload;
-    addLog(`${log.method} ${log.url} → ${log.status || log.error}`);
+ws.onopen = () => appendLog("WebSocket connected");
+ws.onmessage = (ev) => {
+  try {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === "log") {
+      const p = msg.payload;
+      if (p.source === "proxy" && p.type === "request") {
+        appendLog(`[PROXY] ${p.method} ${p.url} → ${p.response && p.response.status}`);
+      } else if (p.source === "proxy" && p.type === "resource") {
+        appendLog(`[PROXY] resource ${p.url} → ${p.status}`);
+      } else if (p.source === "client") {
+        appendLog(`[CLIENT] ${p.event || p.data && p.data.event || ''} ${p.data && (p.data.url || '')}`);
+      } else {
+        appendLog(JSON.stringify(p).slice(0,200));
+      }
+    } else if (msg.type === "hello") {
+      appendLog("Server: " + msg.payload);
+    }
+  } catch (e) {
+    appendLog("WS parse error");
   }
 };
 
-function addLog(msg) {
-  const div = document.createElement("div");
-  div.textContent = msg;
-  logPanel.appendChild(div);
+function appendLog(text) {
+  const el = document.createElement("div");
+  el.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+  logPanel.appendChild(el);
   logPanel.scrollTop = logPanel.scrollHeight;
 }
 
-goBtn.addEventListener("click", async () => {
-  const target = urlInput.value.trim();
-  if (!target.startsWith("http")) {
-    alert("Please include http:// or https://");
+goBtn.addEventListener("click", () => {
+  const url = urlInput.value.trim();
+  if (!url || !url.startsWith("http")) {
+    alert("Enter a full URL (https://...)");
     return;
   }
-  iframe.src = `/proxy?url=${encodeURIComponent(target)}`;
-  addLog(`Navigating to ${target}`);
+  iframe.src = `/proxy?url=${encodeURIComponent(url)}`;
+  appendLog(`Navigating → ${url}`);
 });
 
 saveBtn.addEventListener("click", async () => {
-  const res = await fetch("/save-logs");
-  const data = await res.json();
-  if (data.success) addLog("✅ Logs saved to server.");
+  const r = await fetch("/save-logs");
+  const j = await r.json();
+  if (j.success) appendLog("Logs saved on server: " + j.file);
+  else appendLog("Save failed: " + (j.err||"unknown"));
 });
 
-// 📥 Download logs directly to mobile
+// direct download (mobile/desktop)
 downloadBtn.addEventListener("click", () => {
   window.location.href = "/download-logs";
 });
