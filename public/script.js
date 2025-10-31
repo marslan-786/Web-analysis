@@ -4,38 +4,41 @@ const urlInput = document.getElementById("url");
 const iframe = document.getElementById("browserFrame");
 const logPanel = document.getElementById("logPanel");
 
-let ws = new WebSocket(`wss://${location.host}`.replace("https", "wss").replace("http", "ws"));
+let ws = new WebSocket(
+  location.origin.replace(/^http/, "ws")
+);
 
-ws.onopen = () => console.log("Connected to WS");
-ws.onclose = () => console.log("Disconnected from WS");
+ws.onmessage = (e) => {
+  const msg = JSON.parse(e.data);
+  if (msg.type === "log") {
+    addLog(`[${msg.payload.status}] ${msg.payload.url}`);
+  }
+};
 
-function addLog(msg, type = "info") {
-  const el = document.createElement("div");
-  el.className = type;
-  el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-  logPanel.appendChild(el);
+function addLog(msg) {
+  const div = document.createElement("div");
+  div.textContent = msg;
+  logPanel.appendChild(div);
   logPanel.scrollTop = logPanel.scrollHeight;
 }
 
-// Inject network logging script (if possible)
-iframe.addEventListener("load", () => {
-  addLog(`Loaded: ${iframe.src}`);
-});
-
-goBtn.addEventListener("click", () => {
-  const url = urlInput.value.trim();
-  if (!url.startsWith("http")) {
-    alert("Please enter a valid URL with http/https");
+goBtn.addEventListener("click", async () => {
+  const target = urlInput.value.trim();
+  if (!target.startsWith("http")) {
+    alert("Please include http:// or https://");
     return;
   }
-  iframe.src = url;
-  addLog(`Navigating to ${url}`);
+
+  // Instead of directly loading target, we load via our proxy
+  const proxied = `/proxy?url=${encodeURIComponent(target)}`;
+  iframe.src = proxied;
+  addLog(`Navigating: ${target}`);
 });
 
 saveBtn.addEventListener("click", async () => {
   const res = await fetch("/save-logs");
   const data = await res.json();
   if (data.success) {
-    addLog("Logs saved. Go to Replit 'data/logs.json' to view.");
+    addLog(`✅ Logs saved to ${data.file}`);
   }
 });
