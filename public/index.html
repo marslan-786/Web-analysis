@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Analyzer Browser</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <input type="text" id="url" placeholder="Enter URL (e.g., https://example.com)" />
+    <button id="goBtn">Go</button>
+    <button id="saveBtn">Download Logs</button>
+  </header>
+
+  <main>
+    <iframe id="browserFrame" src="about:blank"></iframe>
+    <div id="logPanel"></div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
