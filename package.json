@@ -1,14 +1,14 @@
 {
   "name": "my-web-analyzer",
   "version": "1.0.0",
-  "description": "Educational browser-like web analyzer for testing and learning APIs",
-  "main": "index.js",
   "type": "module",
+  "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.7",
     "ws": "^8.17.0"
   }
 }
