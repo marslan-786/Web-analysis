@@ -1,17 +1,17 @@
 const goBtn = document.getElementById("goBtn");
 const saveBtn = document.getElementById("saveBtn");
+const downloadBtn = document.getElementById("downloadBtn");
 const urlInput = document.getElementById("url");
 const iframe = document.getElementById("browserFrame");
 const logPanel = document.getElementById("logPanel");
 
-let ws = new WebSocket(
-  location.origin.replace(/^http/, "ws")
-);
+let ws = new WebSocket(location.origin.replace(/^http/, "ws"));
 
 ws.onmessage = (e) => {
   const msg = JSON.parse(e.data);
   if (msg.type === "log") {
-    addLog(`[${msg.payload.status}] ${msg.payload.url}`);
+    const log = msg.payload;
+    addLog(`${log.method} ${log.url} → ${log.status || log.error}`);
   }
 };
 
@@ -28,17 +28,17 @@ goBtn.addEventListener("click", async () => {
     alert("Please include http:// or https://");
     return;
   }
-
-  // Instead of directly loading target, we load via our proxy
-  const proxied = `/proxy?url=${encodeURIComponent(target)}`;
-  iframe.src = proxied;
-  addLog(`Navigating: ${target}`);
+  iframe.src = `/proxy?url=${encodeURIComponent(target)}`;
+  addLog(`Navigating to ${target}`);
 });
 
 saveBtn.addEventListener("click", async () => {
   const res = await fetch("/save-logs");
   const data = await res.json();
-  if (data.success) {
-    addLog(`✅ Logs saved to ${data.file}`);
-  }
+  if (data.success) addLog("✅ Logs saved to server.");
+});
+
+// 📥 Download logs directly to mobile
+downloadBtn.addEventListener("click", () => {
+  window.location.href = "/download-logs";
 });
